@@ -86,6 +86,8 @@ describe('MQTT', () => {
                         model: 2020,
                         name: '2020 foo bar'
                     },
+                    //message: 'na',
+                    state_class: 'measurement',
                     device_class: 'temperature',
                     json_attributes_template: undefined,
                     name: 'Ambient Air Temperature',
@@ -107,6 +109,8 @@ describe('MQTT', () => {
                         model: 2020,
                         name: '2020 foo bar'
                     },
+                    //message: 'na',
+                    state_class: 'measurement',
                     device_class: 'temperature',
                     json_attributes_template: undefined,
                     name: 'Ambient Air Temperature F',
@@ -122,7 +126,69 @@ describe('MQTT', () => {
             it('should generate state payloads', () => {
                 assert.deepStrictEqual(mqtt.getStatePayload(d), {
                     ambient_air_temperature: 15,
-                    ambient_air_temperature_f: 59
+                    ambient_air_temperature_f: 59,
+                    ambient_air_temperature_f_message: 'na',
+                    ambient_air_temperature_message: 'na'
+                    //ambient_air_temperature: 15,
+                    //ambient_air_temperature_f: 59
+                });
+            });
+        });
+
+        describe('sensor', () => {
+            beforeEach(() => d = new Diagnostic(_.get(apiResponse, 'commandResponse.body.diagnosticResponse[7]')));
+            it('should generate config payloads', () => {
+                assert.deepStrictEqual(mqtt.getConfigPayload(d, d.diagnosticElements[0]), {
+                    availability_topic: 'homeassistant/XXX/available',
+                    device: {
+                        identifiers: [
+                            'XXX'
+                        ],
+                        manufacturer: 'foo',
+                        model: 2020,
+                        name: '2020 foo bar'
+                    },
+                    state_class: 'measurement',
+                    device_class: 'distance',
+                    json_attributes_template: undefined,
+                    name: 'Odometer',
+                    payload_available: 'true',
+                    payload_not_available: 'false',
+                    state_topic: 'homeassistant/sensor/XXX/odometer/state',
+                    unique_id: 'xxx-odometer',
+                    json_attributes_topic: undefined,
+                    unit_of_measurement: 'km',
+                    value_template: '{{ value_json.odometer }}'
+                });
+                assert.deepStrictEqual(mqtt.getConfigPayload(d, d.diagnosticElements[1]), {
+                    availability_topic: 'homeassistant/XXX/available',
+                    device: {
+                        identifiers: [
+                            'XXX'
+                        ],
+                        manufacturer: 'foo',
+                        model: 2020,
+                        name: '2020 foo bar'
+                    },
+                    state_class: 'measurement',
+                    device_class: 'distance',
+                    json_attributes_template: undefined,
+                    name: 'Odometer Mi',
+                    payload_available: 'true',
+                    payload_not_available: 'false',
+                    state_topic: 'homeassistant/sensor/XXX/odometer/state',
+                    unique_id: 'xxx-odometer-mi',
+                    json_attributes_topic: undefined,
+                    unit_of_measurement: 'mi',
+                    value_template: '{{ value_json.odometer_mi }}'
+                });
+            });
+            it('should generate state payloads', () => {
+                assert.deepStrictEqual(mqtt.getStatePayload(d), {
+                    odometer: 6013.8,
+                    odometer_message: "na",
+                    odometer_mi: 3736.8,
+                    odometer_mi_message: "na"
                 });
             });
         });
@@ -140,6 +206,8 @@ describe('MQTT', () => {
                         model: 2020,
                         name: '2020 foo bar'
                     },
+                    //message: 'na',                      
+                    state_class: undefined,
                     device_class: undefined,
                     json_attributes_template: undefined,
                     name: 'Priority Charge Indicator',
@@ -156,8 +224,14 @@ describe('MQTT', () => {
             it('should generate state payloads', () => {
                 assert.deepStrictEqual(mqtt.getStatePayload(d), {
                     ev_charge_state: false,
+                    ev_charge_state_message: 'charging_complete',
                     priority_charge_indicator: false,
-                    priority_charge_status: false
+                    priority_charge_indicator_message: 'na',
+                    priority_charge_status: false,
+                    priority_charge_status_message: 'na'
+                    //ev_charge_state: false,
+                    //priority_charge_indicator: false,
+                    //priority_charge_status: false
                 });
             });
         });
@@ -175,8 +249,10 @@ describe('MQTT', () => {
                         model: 2020,
                         name: '2020 foo bar'
                     },
+                    //message: 'YELLOW',
+                    state_class: 'measurement',
                     device_class: 'pressure',
-                    json_attributes_template: "{{ {'recommendation': value_json.tire_pressure_placard_front} | tojson }}",
+                    json_attributes_template: "{{ {'recommendation': value_json.tire_pressure_placard_front, 'message': value_json.tire_pressure_lf_message} | tojson }}",
                     name: 'Tire Pressure: Left Front',
                     payload_available: 'true',
                     payload_not_available: 'false',
@@ -188,5 +264,262 @@ describe('MQTT', () => {
                 });
             });
         });
+
+        describe('attributes', () => {
+            beforeEach(() => d = new Diagnostic(_.get(apiResponse, 'commandResponse.body.diagnosticResponse[8]')));
+            it('should generate payloads with an attribute', () => {
+                assert.deepStrictEqual(mqtt.getConfigPayload(d, d.diagnosticElements[5]), {
+                    availability_topic: 'homeassistant/XXX/available',
+                    device: {
+                        identifiers: [
+                            'XXX'
+                        ],
+                        manufacturer: 'foo',
+                        model: 2020,
+                        name: '2020 foo bar'
+                    },
+                    //message: 'YELLOW',
+                    state_class: 'measurement',
+                    device_class: 'pressure',
+                    json_attributes_template: "{{ {'recommendation': value_json.tire_pressure_placard_rear, 'message': value_json.tire_pressure_rr_message} | tojson }}",
+                    name: 'Tire Pressure: Right Rear',
+                    payload_available: 'true',
+                    payload_not_available: 'false',
+                    state_topic: 'homeassistant/sensor/XXX/tire_pressure/state',
+                    unique_id: 'xxx-tire-pressure-rr',
+                    json_attributes_topic: 'homeassistant/sensor/XXX/tire_pressure/state',
+                    unit_of_measurement: 'kPa',
+                    value_template: '{{ value_json.tire_pressure_rr }}'
+                });
+            });
+        });
+
+        describe('attributes', () => {
+            beforeEach(() => d = new Diagnostic(_.get(apiResponse, 'commandResponse.body.diagnosticResponse[10]')));
+            it('should generate payloads with an attribute', () => {
+                assert.deepStrictEqual(mqtt.getConfigPayload(d, d.diagnosticElements[0]), {
+                    availability_topic: 'homeassistant/XXX/available',
+                    device: {
+                        identifiers: [
+                            'XXX'
+                        ],
+                        manufacturer: 'foo',
+                        model: 2020,
+                        name: '2020 foo bar'
+                    },
+                    //message: 'YELLOW',
+                    state_class: 'measurement',
+                    device_class: undefined,
+                    json_attributes_template: "{{ {'message': value_json.oil_life_message} | tojson }}",
+                    name: 'Oil Life',
+                    payload_available: 'true',
+                    payload_not_available: 'false',
+                    state_topic: 'homeassistant/sensor/XXX/oil_life/state',
+                    unique_id: 'xxx-oil-life',
+                    json_attributes_topic: 'homeassistant/sensor/XXX/oil_life/state',
+                    unit_of_measurement: '%',
+                    value_template: '{{ value_json.oil_life }}'
+                });
+            });
+        });
+
+        describe('sensor', () => {
+            beforeEach(() => d = new Diagnostic(_.get(apiResponse, 'commandResponse.body.diagnosticResponse[11]')));
+            it('should generate config payloads', () => {
+                assert.deepStrictEqual(mqtt.getConfigPayload(d, d.diagnosticElements[0]), {
+                    availability_topic: 'homeassistant/XXX/available',
+                    device: {
+                        identifiers: [
+                            'XXX'
+                        ],
+                        manufacturer: 'foo',
+                        model: 2020,
+                        name: '2020 foo bar'
+                    },
+                    state_class: 'measurement',
+                    device_class: 'volume_storage',
+                    json_attributes_template: undefined,
+                    name: 'Fuel Amount',
+                    payload_available: 'true',
+                    payload_not_available: 'false',
+                    state_topic: 'homeassistant/sensor/XXX/fuel_tank_info/state',
+                    unique_id: 'xxx-fuel-amount',
+                    json_attributes_topic: undefined,
+                    unit_of_measurement: 'L',
+                    value_template: '{{ value_json.fuel_amount }}'
+                });
+                assert.deepStrictEqual(mqtt.getConfigPayload(d, d.diagnosticElements[1]), {
+                    availability_topic: 'homeassistant/XXX/available',
+                    device: {
+                        identifiers: [
+                            'XXX'
+                        ],
+                        manufacturer: 'foo',
+                        model: 2020,
+                        name: '2020 foo bar'
+                    },
+                    state_class: 'measurement',
+                    device_class: 'volume_storage',
+                    json_attributes_template: undefined,
+                    name: 'Fuel Capacity',
+                    payload_available: 'true',
+                    payload_not_available: 'false',
+                    state_topic: 'homeassistant/sensor/XXX/fuel_tank_info/state',
+                    unique_id: 'xxx-fuel-capacity',
+                    json_attributes_topic: undefined,
+                    unit_of_measurement: 'L',
+                    value_template: '{{ value_json.fuel_capacity }}'
+                });
+                assert.deepStrictEqual(mqtt.getConfigPayload(d, d.diagnosticElements[2]), {
+                    availability_topic: 'homeassistant/XXX/available',
+                    device: {
+                        identifiers: [
+                            'XXX'
+                        ],
+                        manufacturer: 'foo',
+                        model: 2020,
+                        name: '2020 foo bar'
+                    },
+                    state_class: 'measurement',
+                    device_class: undefined,
+                    json_attributes_template: undefined,
+                    name: 'Fuel Level',
+                    payload_available: 'true',
+                    payload_not_available: 'false',
+                    state_topic: 'homeassistant/sensor/XXX/fuel_tank_info/state',
+                    unique_id: 'xxx-fuel-level',
+                    json_attributes_topic: undefined,
+                    unit_of_measurement: '%',
+                    value_template: '{{ value_json.fuel_level }}'
+                });
+            });
+            it('should generate state payloads', () => {
+                assert.deepStrictEqual(mqtt.getStatePayload(d), {
+                    fuel_amount: 19.98,
+                    fuel_amount_gal: 5.3,
+                    fuel_amount_gal_message: "na",
+                    fuel_amount_message: "na",
+                    fuel_capacity: 60,
+                    fuel_capacity_gal: 15.9,
+                    fuel_capacity_gal_message: "na",
+                    fuel_capacity_message: "na",
+                    fuel_level: 33.3,
+                    fuel_level_in_gal: 19.98,
+                    fuel_level_in_gal_gal: 5.3,
+                    fuel_level_in_gal_gal_message: "na",
+                    fuel_level_in_gal_message: "na",
+                    fuel_level_message: "na"
+                });
+            });
+        });
+
+        describe('attributes', () => {
+            beforeEach(() => d = new Diagnostic(_.get(apiResponse, 'commandResponse.body.diagnosticResponse[12]')));
+            it('should generate payloads with an attribute', () => {
+                assert.deepStrictEqual(mqtt.getConfigPayload(d, d.diagnosticElements[0]), {
+                    availability_topic: 'homeassistant/XXX/available',
+                    device: {
+                        identifiers: [
+                            'XXX'
+                        ],
+                        manufacturer: 'foo',
+                        model: 2020,
+                        name: '2020 foo bar'
+                    },
+                    state_class: 'measurement',
+                    device_class: undefined,
+                    json_attributes_template: undefined,
+                    name: 'Lifetime Fuel Econ',
+                    payload_available: 'true',
+                    payload_not_available: 'false',
+                    state_topic: 'homeassistant/sensor/XXX/lifetime_fuel_econ/state',
+                    unique_id: 'xxx-lifetime-fuel-econ',
+                    json_attributes_topic: undefined,
+                    unit_of_measurement: 'km/L',
+                    value_template: '{{ value_json.lifetime_fuel_econ }}'
+                });
+            });
+            it('should generate state payloads', () => {
+                assert.deepStrictEqual(mqtt.getStatePayload(d), {
+                    lifetime_fuel_econ: 11.86,
+                    lifetime_fuel_econ_message: "na",
+                    lifetime_fuel_econ_mpg: 27.9,
+                    lifetime_fuel_econ_mpg_message: "na"
+                });
+            });
+        });
+
+        describe('attributes', () => {
+            beforeEach(() => d = new Diagnostic(_.get(apiResponse, 'commandResponse.body.diagnosticResponse[13]')));
+            it('should generate payloads with an attribute', () => {
+                assert.deepStrictEqual(mqtt.getConfigPayload(d, d.diagnosticElements[0]), {
+                    availability_topic: 'homeassistant/XXX/available',
+                    device: {
+                        identifiers: [
+                            'XXX'
+                        ],
+                        manufacturer: 'foo',
+                        model: 2020,
+                        name: '2020 foo bar'
+                    },
+                    state_class: 'total_increasing',
+                    device_class: 'volume',
+                    json_attributes_template: undefined,
+                    name: 'Lifetime Fuel Used',
+                    payload_available: 'true',
+                    payload_not_available: 'false',
+                    state_topic: 'homeassistant/sensor/XXX/lifetime_fuel_used/state',
+                    unique_id: 'xxx-lifetime-fuel-used',
+                    json_attributes_topic: undefined,
+                    unit_of_measurement: 'L',
+                    value_template: '{{ value_json.lifetime_fuel_used }}'
+                });
+            });
+            it('should generate state payloads', () => {
+                assert.deepStrictEqual(mqtt.getStatePayload(d), {
+                    lifetime_fuel_used: 4476.94,
+                    lifetime_fuel_used_gal: 1182.7,
+                    lifetime_fuel_used_gal_message: "na",
+                    lifetime_fuel_used_message: "na"
+                });
+            });
+        });
+
+        describe('attributes', () => {
+            beforeEach(() => d = new Diagnostic(_.get(apiResponse, 'commandResponse.body.diagnosticResponse[4]')));
+            it('should generate payloads with an attribute', () => {
+                assert.deepStrictEqual(mqtt.getConfigPayload(d, d.diagnosticElements[0]), {
+                    availability_topic: 'homeassistant/XXX/available',
+                    device: {
+                        identifiers: [
+                            'XXX'
+                        ],
+                        manufacturer: 'foo',
+                        model: 2020,
+                        name: '2020 foo bar'
+                    },
+                    state_class: undefined,
+                    device_class: 'plug',
+                    json_attributes_template: undefined,
+                    name: 'Ev Plug State',
+                    payload_available: 'true',
+                    payload_not_available: 'false',
+                    payload_off: false,
+                    payload_on: true,
+                    state_topic: 'homeassistant/binary_sensor/XXX/ev_plug_state/state',
+                    unique_id: 'xxx-ev-plug-state',
+                    json_attributes_topic: undefined,
+                    value_template: '{{ value_json.ev_plug_state }}'
+                });
+            });
+            it('should generate state payloads', () => {
+                assert.deepStrictEqual(mqtt.getStatePayload(d), {
+                    ev_plug_state: true,
+                    ev_plug_state_message: "plugged"
+                });
+            });
+        });
+
+
     });
 });
