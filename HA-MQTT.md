@@ -15,6 +15,16 @@ mode: single
 icon: 'mdi:car-electric'
 ```
 
+```text
+Format for sending command options in the payload:
+  * Diagnostics:
+    * {"command": "diagnostics","options": "OIL LIFE,VEHICLE RANGE"}
+  * Set Charging Profile
+    * {"command": "setChargingProfile","options": {"chargeMode": "RATE_BASED","rateType": "OFFPEAK"}}
+  * Alert
+    * {"command": "alert","options": {"action": "Flash"}}
+```
+
 ### Trigger Precondition via Calendar
 
 ````yaml
@@ -41,12 +51,17 @@ mode: single
 
 ### Location
 
-Unfortunately, the MQTT Device tracker uses a home/not_home state and the MQTT Json device tracker does not support
-the discovery schema so a manual entity configuration is required.
+MQTT device_tracker auto discovery capability is enabled starting at v1.12.0
 
-Device Tracker YAML:
+The device_tracker auto discovery config is published to: "homeassistant/device_tracker/(VIN)/config" and the GPS coordinates are still read from the original topic automatically at: "homeassistant/device_tracker/(VIN)/getlocation/state".
+
+~~Unfortunately, the MQTT Device tracker uses a home/not_home state and the MQTT Json device tracker does not support
+the discovery schema so a manual entity configuration is required.~~
+
+~~Device Tracker YAML:~~
 
 ```yaml
+<!-- The following YAML configuration is no longer required starting at v1.12.0-->
 device_tracker:
   - platform: mqtt_json
     devices:
@@ -66,7 +81,7 @@ mode: single
 icon: 'mdi:map-marker'
 ```
 
-#### MQTT Polling Status Success Monitor
+#### MQTT Polling Status Success Monitor (T/F)
 
 Create a MQTT binary sensor in Home Assistant
 
@@ -76,12 +91,30 @@ mqtt:
     - name: "<Vehicle_Name> OnStar Polling Status Successful"
       unique_id: <vehicle_name>_onstar_polling_status_successful
       availability_topic: homeassistant/<vehicle_vin>/available
-      payload_available: "true"
-      payload_not_available: "false"
+      payload_available: "false"
+      payload_not_available: "true"
       state_topic: "homeassistant/onstar2mqtt/vehicle1/polling/lastpollsuccessful"
       payload_on: "false"
       payload_off: "true"
       device_class: problem
+```
+
+#### MQTT Polling Status Success Timestamp Monitor
+
+Create a MQTT sensor in Home Assistant
+
+```yaml
+mqtt:
+  sensor:
+    - name: "<Vehicle_Name> OnStar Last Polling Status Timestamp"
+      unique_id: <vehicle_name>_last_polling_status_timestamp
+      availability_topic: homeassistant/<vehicle_vin>/available
+      payload_available: "false"
+      payload_not_available: "true"
+      state_topic: "homeassistant/onstar2mqtt/vehicle1/polling/state"
+      value_template: "{{ value_json.completionTimestamp }}"  
+      icon: mdi:calendar-clock  
+      device_class: timestamp
 ```
 
 ### Automation
@@ -112,11 +145,15 @@ mode: single
 5. `cancelAlert`
 6. `lockDoor`
 7. `unlockDoor`
-8. `chargeOverride`
-9. `cancelChargeOverride`
-10. `getLocation`
-11. `alertFlash`
-12. `alertHonk`
+8. `lockTrunk`
+9. `unlockTrunk`
+10. `chargeOverride`
+11. `cancelChargeOverride`
+12. `getLocation`
+13. `alertFlash`
+14. `alertHonk`
+15. `diagnostics`
+16. `enginerpm`
 
 ### Lovelace Dashboard
 
@@ -207,7 +244,7 @@ views:
         name: Last Trip
         hours_to_show: 672
         group_by: date
-        agreggate_func: null
+        aggregate_func: null
         show:
           graph: bar
           icon: false

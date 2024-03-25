@@ -98,6 +98,22 @@ class MQTT {
         return `${this.prefix}/${this.instance}/command`;
     }
 
+    getPollingStatusTopic() {
+        return `${this.prefix}/${this.instance}/polling_status`;
+    }
+
+    getRefreshIntervalTopic() {
+        return `${this.prefix}/${this.instance}/refresh_interval`;
+    }
+
+    getRefreshIntervalCurrentValTopic() {
+        return `${this.prefix}/${this.instance}/refresh_interval_current_val`;
+    }
+
+    getDeviceTrackerConfigTopic() {
+        return `${this.prefix}/device_tracker/${this.instance}/config`;
+    }
+
     /**
      *
      * @param {DiagnosticElement} diag
@@ -133,7 +149,7 @@ class MQTT {
         const state = {};
         _.forEach(diag.diagnosticElements, e => {
             // massage the binary_sensor values
-            let value;            
+            let value;
             switch (e.name) {
                 case 'EV PLUG STATE': // unplugged/plugged
                     value = e.value === 'plugged';
@@ -168,7 +184,7 @@ class MQTT {
         unique_id = unique_id.replace(/\s+/g, '-').toLowerCase();
         return {
             state_class,
-            device_class,            
+            device_class,
             name,
             device: {
                 identifiers: [this.vehicle.vin],
@@ -191,14 +207,14 @@ class MQTT {
         name = name || MQTT.convertFriendlyName(diagEl.name);
         return _.extend(
             this.mapBaseConfigPayload(diag, diagEl, state_class, device_class, name, attr),
-            {unit_of_measurement: diagEl.unit});
+            { unit_of_measurement: diagEl.unit });
     }
 
     mapBinarySensorConfigPayload(diag, diagEl, state_class, device_class, name, attr) {
         name = name || MQTT.convertFriendlyName(diagEl.name);
         return _.extend(
             this.mapBaseConfigPayload(diag, diagEl, state_class, device_class, name, attr),
-            {payload_on: true, payload_off: false});
+            { payload_on: true, payload_off: false });
     }
 
     /**
@@ -254,11 +270,12 @@ class MQTT {
             case 'GAS RANGE MI':
             case 'EV RANGE':
             case 'EV RANGE MI':
-            case 'ODOMETER':
-            case 'ODOMETER MI':
             case 'LAST TRIP TOTAL DISTANCE':
             case 'LAST TRIP TOTAL DISTANCE MI':
                 return this.mapSensorConfigPayload(diag, diagEl, 'measurement', 'distance');
+            case 'ODOMETER':
+            case 'ODOMETER MI':
+                return this.mapSensorConfigPayload(diag, diagEl, 'total_increasing', 'distance');
             case 'LIFETIME FUEL USED':
             case 'LIFETIME FUEL USED GAL':
                 return this.mapSensorConfigPayload(diag, diagEl, 'total_increasing', 'volume');
@@ -268,10 +285,10 @@ class MQTT {
             case 'FUEL CAPACITY GAL':
             case 'FUEL LEVEL IN GAL':
             case 'FUEL LEVEL IN GAL GAL':
-                return this.mapSensorConfigPayload(diag, diagEl, 'measurement', 'volume_storage');    
+                return this.mapSensorConfigPayload(diag, diagEl, 'measurement', 'volume_storage');
             // no device class, has message
             case 'OIL LIFE':
-                return this.mapSensorConfigPayload(diag, diagEl, 'measurement', undefined, 'Oil Life', `{{ {'message': value_json.${MQTT.convertName('OIL_LIFE_MESSAGE')}} | tojson }}`);            
+                return this.mapSensorConfigPayload(diag, diagEl, 'measurement', undefined, 'Oil Life', `{{ {'message': value_json.${MQTT.convertName('OIL_LIFE_MESSAGE')}} | tojson }}`);
             // no device class, camel case name
             case 'LAST TRIP ELECTRIC ECON':
             case 'LIFETIME MPGE':

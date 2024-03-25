@@ -49,6 +49,22 @@ describe('MQTT', () => {
             assert.strictEqual(mqtt.getCommandTopic(), 'homeassistant/XXX/command');
         });
 
+        it('should generate polling status topic', () => {
+            assert.strictEqual(mqtt.getPollingStatusTopic(), 'homeassistant/XXX/polling_status');
+        });
+
+        it('should generate refresh interval topic', () => {
+            assert.strictEqual(mqtt.getRefreshIntervalTopic(), 'homeassistant/XXX/refresh_interval');
+        });
+
+        it('should generate command topic', () => {
+            assert.strictEqual(mqtt.getRefreshIntervalCurrentValTopic(), 'homeassistant/XXX/refresh_interval_current_val');
+        });
+
+        it('should generate command topic', () => {
+            assert.strictEqual(mqtt.getDeviceTrackerConfigTopic(), 'homeassistant/device_tracker/XXX/config');
+        });
+
         describe('sensor', () => {
             beforeEach(() => d = new Diagnostic(_.get(apiResponse, 'commandResponse.body.diagnosticResponse[0]')));
 
@@ -148,7 +164,7 @@ describe('MQTT', () => {
                         model: 2020,
                         name: '2020 foo bar'
                     },
-                    state_class: 'measurement',
+                    state_class: 'total_increasing',
                     device_class: 'distance',
                     json_attributes_template: undefined,
                     name: 'Odometer',
@@ -170,7 +186,7 @@ describe('MQTT', () => {
                         model: 2020,
                         name: '2020 foo bar'
                     },
-                    state_class: 'measurement',
+                    state_class: 'total_increasing',
                     device_class: 'distance',
                     json_attributes_template: undefined,
                     name: 'Odometer Mi',

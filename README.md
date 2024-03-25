@@ -7,7 +7,7 @@
 [![Authenticate Assets with CAS](https://github.com/BigThunderSR/onstar2mqtt/actions/workflows/cas_authenticate.yml/badge.svg)](https://github.com/BigThunderSR/onstar2mqtt/actions/workflows/cas_authenticate.yml)
 [![Notarize and Authenticate Docker Image BOM with CAS](https://github.com/BigThunderSR/onstar2mqtt/actions/workflows/cas-docker-notarize-authenticate.yml/badge.svg)](https://github.com/BigThunderSR/onstar2mqtt/actions/workflows/cas-docker-notarize-authenticate.yml) -->
 
-A service that utilizes the [OnStarJS](https://github.com/samrum/OnStarJS) library to expose OnStar data to MQTT topics.
+A service that utilizes the [OnStarJS](https://github.com/samrum/OnStarJS) library to expose OnStar data to MQTT topics. Please note that only US and Canadian OnStar accounts are known to work with this integration.
 
 ~~The functionality is mostly focused around EVs (specifically the Bolt EV), however PRs for other vehicle types are certainly welcome.~~
 
@@ -25,8 +25,17 @@ Collect the following information:
     1. **NEW! - Provide MQTT topic (MQTT_ONSTAR_POLLING_STATUS_TOPIC) for Onstar Data Polling Status to monitor success/failure when OnStar is polled for data**
        * MQTT_ONSTAR_POLLING_STATUS_TOPIC/lastpollsuccessful - "true" or "false" depending on status of last poll
        * MQTT_ONSTAR_POLLING_STATUS_TOPIC/state - Polling Status and Detailed Error Messages in JSON
+       * **NEW! - Automatic creation of pollingStatusTopic starting at v1.11.0**
+         * No longer need to specify MQTT_ONSTAR_POLLING_STATUS_TOPIC as this is now created automatically
+         * Format is "homeassistant/(VIN)/polling_status/"
+         * If it is explicitly specified, will use the specified value, so does not break backwards compatibility
 
 Supply these values to the ENV vars below. The default data refresh interval is 30 minutes and can be overridden with ONSTAR_REFRESH with values in milliseconds.
+
+* **NEW - Ability to dynamically change polling frequency using MQTT**
+  * Uses the value from "ONSTAR_REFRESH" on initial startup
+  * Change the value dynamically by publishing the new refresh value in milliseconds (ms) as an INT to: "homeassistant/(VIN)/refresh_interval"
+  * Added new retained topic of "homeassistant/(VIN)/refresh_interval_current_val" to monitor current refresh value set via MQTT
 
 * **NEW - Command Response Status is now published to MQTT topics!**
   * Topic format: MQTT_PREFIX/{VIN}/command/{commandName}/state
@@ -35,6 +44,35 @@ Supply these values to the ENV vars below. The default data refresh interval is 
 * **NEW - Sensor specific messages are now published to MQTT as sensor attributes which are visible in HA**
 
 * **NEW - Most non-binary sensors have a state_class assigned to allow collection of long-term statistics in HA**
+
+* **NEW - Manual diagnostic refresh command and manual engine RPM refresh command are working**
+
+* **NEW - OnStar password/pin and MQTT password are masked by default in the console log output. To see these values in the console log output, set "--env LOG_LEVEL=debug"**
+
+* **NEW - New env options for securing connectivity for MQTTS using TLS**
+  * MQTT_REJECT_UNAUTHORIZED (Default: "true", set to "false" only for testing.)
+  * MQTT_CA_FILE
+  * MQTT_CERT_FILE
+  * MQTT_KEY_FILE
+
+* **NEW - Auto discovery for device_tracker has been enabled starting at v1.12.0**
+  * The device_tracker auto discovery config is published to: "homeassistant/device_tracker/(VIN)/config" and the GPS coordinates are still read from the original topic automatically at: "homeassistant/device_tracker/(VIN)/getlocation/state"
+  * Also added GPS based speed and direction to the device_tracker attributes
+
+* **NEW - Ability to send commands with options using MQTT now works**
+  * Send commands to the command topic in the format:
+    * {"command": "diagnostics","options": "OIL LIFE,VEHICLE RANGE"}
+    * {"command": "setChargingProfile","options": {"chargeMode": "RATE_BASED","rateType": "OFFPEAK"}}
+    * {"command": "alert","options": {"action": "Flash"}}
+
+## Helpful Usage Notes
+
+* The OnStar API has rate limiting, so they will block excessive requests over a short period of time.
+  * Reducing the polling timeout to less than 30 minutes/1800000 ms is likely to get you rate limited (Error 429).
+* The OnStar API can be very temperamental, so you may see numerous errors every now and then where you cannot get any data from your vehicle. These tend to be very sporadic and usually go away on their own.
+  * A common example of this is: "Request Failed with status 504 - Gateway Timeout"
+* After your engine is turned off, the vehicle will respond to about 4 - 5 requests before going into a type of hibernation mode and will not respond to requests or commands until the engine is started up again. If your engine has been off for a while, you may still not be able to get any data from the vehicle or run commands even if it is your first attempt at trying to pull data from your vehicle after the engine was turned off.
+  * **Note:** You will see an error of *"Unable to establish packet session to the vehicle"* when this occurs.
 
 ### Docker
 
