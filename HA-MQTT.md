@@ -4,6 +4,8 @@
 
 ### Example Script YAML
 
+MQTT button auto discovery is enabled starting at v1.14.0 which sends/triggers the defaults of each command. The following isn't strictly necessary, but still available if needed or for sending customized commands.
+
 ```yaml
 alias: Car - Start Vehicle
 sequence:
@@ -51,9 +53,9 @@ mode: single
 
 ### Location
 
-MQTT device_tracker auto discovery capability is enabled starting at v1.12.0
+MQTT device_tracker auto discovery capability is enabled starting at v1.12.0. Requires running the getLocation command for initial setup of the device_tracker entity via auto discovery.
 
-The device_tracker auto discovery config is published to: "homeassistant/device_tracker/(VIN)/config" and the GPS coordinates are still read from the original topic automatically at: "homeassistant/device_tracker/(VIN)/getlocation/state".
+The device_tracker auto discovery config is published to: "homeassistant/device_tracker/YOUR_CAR_VIN/config" and the GPS coordinates are still read from the original topic automatically at: "homeassistant/device_tracker/YOUR_CAR_VIN/getlocation/state".
 
 ~~Unfortunately, the MQTT Device tracker uses a home/not_home state and the MQTT Json device tracker does not support
 the discovery schema so a manual entity configuration is required.~~
@@ -61,14 +63,16 @@ the discovery schema so a manual entity configuration is required.~~
 ~~Device Tracker YAML:~~
 
 ```yaml
-<!-- The following YAML configuration is no longer required starting at v1.12.0-->
-device_tracker:
-  - platform: mqtt_json
-    devices:
-      your_car_name: homeassistant/device_tracker/YOUR_CAR_VIN/getlocation/state
+<!-- The following YAML configuration is no longer required starting at v1.12.0 -->
+#device_tracker:
+#  - platform: mqtt_json
+#    devices:
+#      your_car_name: homeassistant/device_tracker/YOUR_CAR_VIN/getlocation/state
 ```
 
 #### Script YAML
+
+MQTT button auto discovery is enabled starting at v1.14.0, so the following isn't strictly necessary, but still available if needed.
 
 ```yaml
 alias: Car - Location
@@ -83,6 +87,10 @@ icon: 'mdi:map-marker'
 
 #### MQTT Polling Status Success Monitor (T/F)
 
+* MQTT Auto-Discovery for Polling Status Sensors for HA Added Starting at v1.16.0
+  * Polling Status Message, Timestamp and True/False Sensor from last command run are published to MQTT auto-discovery topics and are grouped in a MQTT device grouping for all command status sensors for the same vehicle.  
+
+To add manually if wanted:
 Create a MQTT binary sensor in Home Assistant
 
 ```yaml
@@ -90,10 +98,13 @@ mqtt:
   binary_sensor:
     - name: "<Vehicle_Name> OnStar Polling Status Successful"
       unique_id: <vehicle_name>_onstar_polling_status_successful
-      availability_topic: homeassistant/<vehicle_vin>/available
+      availability_topic: homeassistant/YOUR_CAR_VIN/available
       payload_available: "false"
       payload_not_available: "true"
-      state_topic: "homeassistant/onstar2mqtt/vehicle1/polling/lastpollsuccessful"
+      state_topic: "YOUR_POLLING_STATUS_TOPIC/lastpollsuccessful"
+      # NOTE: If "MQTT_ONSTAR_POLLING_STATUS_TOPIC" is not explicitly set,
+      #       "YOUR_POLLING_STATUS_TOPIC" defaults to "homeassistant/YOUR_CAR_VIN/polling_status/".
+      #       If set, provide whatever value you set it to in this field.
       payload_on: "false"
       payload_off: "true"
       device_class: problem
@@ -101,6 +112,10 @@ mqtt:
 
 #### MQTT Polling Status Success Timestamp Monitor
 
+* MQTT Auto-Discovery for Polling Status Sensors for HA Added Starting at v1.16.0
+  * Polling Status Message, Timestamp and True/False Sensor from last command run are published to MQTT auto-discovery topics and are grouped in a MQTT device grouping for all command status sensors for the same vehicle.
+
+To add manually if wanted:
 Create a MQTT sensor in Home Assistant
 
 ```yaml
@@ -108,11 +123,59 @@ mqtt:
   sensor:
     - name: "<Vehicle_Name> OnStar Last Polling Status Timestamp"
       unique_id: <vehicle_name>_last_polling_status_timestamp
-      availability_topic: homeassistant/<vehicle_vin>/available
+      availability_topic: homeassistant/YOUR_CAR_VIN/available
       payload_available: "false"
       payload_not_available: "true"
-      state_topic: "homeassistant/onstar2mqtt/vehicle1/polling/state"
+      state_topic: "YOUR_POLLING_STATUS_TOPIC/state"
+      # NOTE: If "MQTT_ONSTAR_POLLING_STATUS_TOPIC" is not explicitly set,
+      #       "YOUR_POLLING_STATUS_TOPIC" defaults to "homeassistant/YOUR_CAR_VIN/polling_status/".
+      #       If set, provide whatever value you set it to in this field.
       value_template: "{{ value_json.completionTimestamp }}"  
+      icon: mdi:calendar-clock  
+      device_class: timestamp
+```
+
+### MQTT Command Status Monitor
+
+* MQTT Auto-Discovery for Command Status Sensors for HA Added Starting at v1.15.0
+  * Command Status and Timestamp from last command run are published to MQTT auto-discovery topics and are grouped in a MQTT device grouping for all command status sensors for the same vehicle.
+  * Command needs to be run at least once before the sensor is visible in HA.
+
+To add manually if wanted:
+Create a MQTT sensor in Home Assistant for each command status you want to monitor. Below is an example for the getLocation command and other commands follow a similar format.
+
+```yaml
+mqtt:
+  sensor:
+    - name: "Vehicle1 Location Command Status Message"
+      unique_id: vehicle1_location_command_status_message
+      availability_topic: homeassistant/YOUR_CAR_VIN/available
+      payload_available: "false"
+      payload_not_available: "true"
+      state_topic: "homeassistant/YOUR_VEHICLE_VIN/command/getLocation/state"
+      value_template: "{{ value_json.command.error.message }}"  
+      icon: mdi:message-alert
+```
+
+### MQTT Command Status Timestamp Monitor
+
+* MQTT Auto-Discovery for Command Status Sensors for HA Added Starting at v1.15.0
+  * Command Status and Timestamp from last command run are published to MQTT auto-discovery topics and are grouped in a MQTT device grouping for all command status sensors for the same vehicle.
+  * Command needs to be run at least once before the sensor is visible in HA.
+
+To add manually if wanted:
+Create a MQTT sensor in Home Assistant for each command timestamp you want to monitor. Below is an example for the getLocation command and other commands follow a similar format.
+
+```yaml
+mqtt:
+  sensor:
+    - name: "Vehicle1 Location Command Status Timestamp"
+      unique_id: vehicle1_location_command_status_timestamp
+      availability_topic: homeassistant/YOUR_CAR_VIN/available
+      payload_available: "false"
+      payload_not_available: "true"
+      state_topic: "homeassistant/YOUR_VEHICLE_VIN/command/getLocation/state"
+      value_template: "{{ value_json.completionTimestamp}}"  
       icon: mdi:calendar-clock  
       device_class: timestamp
 ```
@@ -138,6 +201,8 @@ mode: single
 
 [OnStarJS Command Docs](https://github.com/samrum/OnStarJS#commands)
 
+Commands Implemented in this Program:
+
 1. `getAccountVehicles`
 2. `startVehicle`
 3. `cancelStartVehicle`
@@ -145,15 +210,17 @@ mode: single
 5. `cancelAlert`
 6. `lockDoor`
 7. `unlockDoor`
-8. `lockTrunk`
-9. `unlockTrunk`
-10. `chargeOverride`
-11. `cancelChargeOverride`
-12. `getLocation`
-13. `alertFlash`
-14. `alertHonk`
-15. `diagnostics`
-16. `enginerpm`
+8. `lockTrunk` (only available on some vehicles)
+9. `unlockTrunk` (only available on some vehicles)
+10. `getChargingProfile`
+11. `setChargingProfile`
+12. `chargeOverride`
+13. `cancelChargeOverride`
+14. `getLocation`
+15. `alertFlash`
+16. `alertHonk`
+17. `diagnostics`
+18. `enginerpm`
 
 ### Lovelace Dashboard
 

@@ -136,7 +136,6 @@ class Commands {
 
     async diagnostics({ diagnosticItem = [
         Commands.CONSTANTS.DIAGNOSTICS.AMBIENT_AIR_TEMPERATURE,
-        Commands.CONSTANTS.DIAGNOSTICS.ENGINE_RPM,
         Commands.CONSTANTS.DIAGNOSTICS.LAST_TRIP_DISTANCE,
         Commands.CONSTANTS.DIAGNOSTICS.ODOMETER,
         Commands.CONSTANTS.DIAGNOSTICS.TIRE_PRESSURE,
