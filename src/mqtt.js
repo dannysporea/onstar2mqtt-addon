@@ -1,5 +1,5 @@
 const _ = require('lodash');
-//const Buttons = require('./buttons');
+const commands = require('./commands');
 
 /**
  * Supports Home Assistant MQTT Discovery (https://www.home-assistant.io/docs/mqtt/discovery/)
@@ -47,25 +47,88 @@ const _ = require('lodash');
 class MQTT {
     static CONSTANTS = {
         BUTTONS: {
-            Alert: 'alert',
-            AlertFlash: 'alertFlash',
-            AlertHonk: 'alertHonk',
-            CancelAlert: 'cancelAlert',
-            LockDoor: 'lockDoor',
-            UnlockDoor: 'unlockDoor',
-            LockTrunk: 'lockTrunk',
-            UnlockTrunk: 'unlockTrunk',
-            Start: 'start',
-            CancelStart: 'cancelStart',
-            GetLocation: 'getLocation',
-            Diagnostics: 'diagnostics',
-            EngineRPM: 'enginerpm',
-            ChargeOverride: 'chargeOverride',
-            CancelChargeOverride: 'cancelChargeOverride',
-            GetChargingProfile: 'getChargingProfile',
-            SetChargingProfile: 'setChargingProfile',
+            Alert: {
+                Name: 'alert',
+                Icon: 'mdi:alert',
+            },
+            AlertFlash: {
+                Name: 'alertFlash',
+                Icon: 'mdi:car-light-alert',
+            },
+            AlertHonk: {
+                Name: 'alertHonk',
+                Icon: 'mdi:bugle',
+            },
+            CancelAlert: {
+                Name: 'cancelAlert',
+                Icon: 'mdi:alert-minus',
+            },
+            LockDoor: {
+                Name: 'lockDoor',
+                Icon: 'mdi:car-door-lock',
+            },
+            UnlockDoor: {
+                Name: 'unlockDoor',
+                Icon: 'mdi:car-door-lock-open',
+            },
+            LockTrunk: { 
+                Name: 'lockTrunk',
+                Icon: 'mdi:archive-lock',
+            },
+            UnlockTrunk: {
+                Name: 'unlockTrunk',
+                Icon: 'mdi:archive-lock-open',
+            },
+            Start: {
+                Name: 'startVehicle',
+                Icon: 'mdi:car-key',
+            },
+            CancelStart: {
+                Name: 'cancelStartVehicle',
+                Icon: 'mdi:car-off',
+            },
+            GetLocation: {
+                Name: 'getLocation',
+                Icon: 'mdi:map-marker-radius',
+            },
+            Diagnostics: {
+                Name: 'diagnostics',
+                Icon: 'mdi:car-info',
+            },
+            EngineRPM: {
+                Name: 'enginerpm',
+                Icon: 'mdi:speedometer',
+            },
+            ChargeOverride: {
+                Name: 'chargeOverride',
+                Icon: 'mdi:ev-station',
+            },
+            CancelChargeOverride: {
+                Name: 'cancelChargeOverride',
+                Icon: 'mdi:battery-charging-wireless-alert',
+            },
+            GetChargingProfile: {
+                Name: 'getChargingProfile',
+                Icon: 'mdi:battery-charging-wireless',
+            },
+            SetChargingProfile: {
+                Name: 'setChargingProfile',
+                Icon: 'mdi:battery-sync',
+            },
         }
     };
+
+    static validateButtonNames() {
+        const buttonNames = Object.values(MQTT.CONSTANTS.BUTTONS).map(button => button.Name);
+        const commandNames = commands.getFunctionNames();
+
+        buttonNames.forEach(buttonName => {
+            if (!commandNames.includes(buttonName)) {
+                //console.log(`Button name "${buttonName}" does not match any command in commands.js`);
+                throw new Error(`Button name "${buttonName}" does not match any command in commands.js`);
+            }
+        });
+    }
 
     constructor(vehicle, prefix = 'homeassistant', namePrefix) {
         this.prefix = prefix;
@@ -141,17 +204,31 @@ class MQTT {
     //        return `${this.prefix}/sensor/${this.instance}`;
     //    }
 
-    createCommandStatusSensorConfigPayload(command) {
+    createCommandStatusSensorConfigPayload(command, listAllSensorsTogether) {
         let topic = `${this.prefix}/sensor/${this.instance}/${command}_status_monitor/config`;
         let commandStatusTopic = `${this.prefix}/${this.instance}/command/${command}/state`;
-        let payload = {
-            "device": {
+
+        let device;
+        if (listAllSensorsTogether === true) {
+            device = {
+                "identifiers": [this.vehicle.vin],
+                "manufacturer": this.vehicle.make,
+                "model": this.vehicle.year + ' ' + this.vehicle.model,
+                "name": this.vehicle.toString(),
+                "suggested_area": this.vehicle.toString(),
+            };
+        } else {
+            device = {
                 "identifiers": [this.vehicle.vin + "_Command_Status_Monitor"],
                 "manufacturer": this.vehicle.make,
                 "model": this.vehicle.year + ' ' + this.vehicle.model,
                 "name": this.vehicle.toString() + ' Command Status Monitor Sensors',
                 "suggested_area": this.vehicle.toString() + ' Command Status Monitor Sensors',
-            },
+            };
+        }
+
+        let payload = {
+            "device": device,
             "availability": {
                 "topic": this.getAvailabilityTopic(),
                 "payload_available": 'true',
@@ -163,20 +240,35 @@ class MQTT {
             "value_template": "{{ value_json.command.error.message }}",
             "icon": "mdi:message-alert",
         };
+
         return { topic, payload };
     }
 
-    createCommandStatusSensorTimestampConfigPayload(command) {
+    createCommandStatusSensorTimestampConfigPayload(command, listAllSensorsTogether) {
         let topic = `${this.prefix}/sensor/${this.instance}/${command}_status_timestamp/config`;
         let commandStatusTopic = `${this.prefix}/${this.instance}/command/${command}/state`;
-        let payload = {
-            "device": {
+
+        let device;
+        if (listAllSensorsTogether === true) {
+            device = {
+                "identifiers": [this.vehicle.vin],
+                "manufacturer": this.vehicle.make,
+                "model": this.vehicle.year + ' ' + this.vehicle.model,
+                "name": this.vehicle.toString(),
+                "suggested_area": this.vehicle.toString(),
+            };
+        } else {
+            device = {
                 "identifiers": [this.vehicle.vin + "_Command_Status_Monitor"],
                 "manufacturer": this.vehicle.make,
                 "model": this.vehicle.year + ' ' + this.vehicle.model,
                 "name": this.vehicle.toString() + ' Command Status Monitor Sensors',
                 "suggested_area": this.vehicle.toString() + ' Command Status Monitor Sensors',
-            },
+            };
+        }
+
+        let payload = {
+            "device": device,
             "availability": {
                 "topic": this.getAvailabilityTopic(),
                 "payload_available": 'true',
@@ -230,8 +322,9 @@ class MQTT {
                 },
                 "unique_id": unique_id,
                 "name": `Command ${button.name}`,
+                "icon": MQTT.CONSTANTS.BUTTONS[button.name].Icon,
                 "command_topic": this.getCommandTopic(),
-                "payload_press": JSON.stringify({ "command": MQTT.CONSTANTS.BUTTONS[button.name] }),
+                "payload_press": JSON.stringify({ "command": MQTT.CONSTANTS.BUTTONS[button.name].Name }),
                 "qos": 2,
                 "enabled_by_default": false,
             });
@@ -275,8 +368,9 @@ class MQTT {
                 },
                 "unique_id": unique_id,
                 "name": `Command ${button.name}`,
+                "icon": MQTT.CONSTANTS.BUTTONS[button.name].Icon,
                 "command_topic": this.getCommandTopic(),
-                "payload_press": JSON.stringify({ "command": MQTT.CONSTANTS.BUTTONS[button.name] }),
+                "payload_press": JSON.stringify({ "command": MQTT.CONSTANTS.BUTTONS[button.name].Name }),
                 "qos": 2,
                 "enabled_by_default": false,
             });
@@ -287,16 +381,30 @@ class MQTT {
         return { buttonInstances, buttonConfigs, configPayloads };
     }
 
-    createPollingStatusMessageSensorConfigPayload(pollingStatusTopicState) {
+    createPollingStatusMessageSensorConfigPayload(pollingStatusTopicState, listAllSensorsTogether) {
         let topic = `${this.prefix}/sensor/${this.instance}/polling_status_message/config`;
-        let payload = {
-            "device": {
+
+        let device;
+        if (listAllSensorsTogether === true) {
+            device = {
+                "identifiers": [this.vehicle.vin],
+                "manufacturer": this.vehicle.make,
+                "model": this.vehicle.year + ' ' + this.vehicle.model,
+                "name": this.vehicle.toString(),
+                "suggested_area": this.vehicle.toString(),
+            };
+        } else {
+            device = {
                 "identifiers": [this.vehicle.vin + "_Command_Status_Monitor"],
                 "manufacturer": this.vehicle.make,
                 "model": this.vehicle.year + ' ' + this.vehicle.model,
                 "name": this.vehicle.toString() + ' Command Status Monitor Sensors',
                 "suggested_area": this.vehicle.toString() + ' Command Status Monitor Sensors',
-            },
+            };
+        }
+
+        let payload = {
+            "device": device,
             "availability": {
                 "topic": this.getAvailabilityTopic(),
                 "payload_available": 'true',
@@ -311,16 +419,30 @@ class MQTT {
         return { topic, payload };
     }
 
-    createPollingStatusCodeSensorConfigPayload(pollingStatusTopicState) {
+    createPollingStatusCodeSensorConfigPayload(pollingStatusTopicState, listAllSensorsTogether) {
         let topic = `${this.prefix}/sensor/${this.instance}/polling_status_code/config`;
-        let payload = {
-            "device": {
+
+        let device;
+        if (listAllSensorsTogether === true) {
+            device = {
+                "identifiers": [this.vehicle.vin],
+                "manufacturer": this.vehicle.make,
+                "model": this.vehicle.year + ' ' + this.vehicle.model,
+                "name": this.vehicle.toString(),
+                "suggested_area": this.vehicle.toString(),
+            };
+        } else {
+            device = {
                 "identifiers": [this.vehicle.vin + "_Command_Status_Monitor"],
                 "manufacturer": this.vehicle.make,
                 "model": this.vehicle.year + ' ' + this.vehicle.model,
                 "name": this.vehicle.toString() + ' Command Status Monitor Sensors',
                 "suggested_area": this.vehicle.toString() + ' Command Status Monitor Sensors',
-            },
+            };
+        }
+
+        let payload = {
+            "device": device,
             "availability": {
                 "topic": this.getAvailabilityTopic(),
                 "payload_available": 'true',
@@ -335,16 +457,30 @@ class MQTT {
         return { topic, payload };
     }
 
-    createPollingStatusTimestampSensorConfigPayload(pollingStatusTopicState) {
+    createPollingStatusTimestampSensorConfigPayload(pollingStatusTopicState, listAllSensorsTogether) {
         let topic = `${this.prefix}/sensor/${this.instance}/polling_status_timestamp/config`;
-        let payload = {
-            "device": {
+
+        let device;
+        if (listAllSensorsTogether === true) {
+            device = {
+                "identifiers": [this.vehicle.vin],
+                "manufacturer": this.vehicle.make,
+                "model": this.vehicle.year + ' ' + this.vehicle.model,
+                "name": this.vehicle.toString(),
+                "suggested_area": this.vehicle.toString(),
+            };
+        } else {
+            device = {
                 "identifiers": [this.vehicle.vin + "_Command_Status_Monitor"],
                 "manufacturer": this.vehicle.make,
                 "model": this.vehicle.year + ' ' + this.vehicle.model,
                 "name": this.vehicle.toString() + ' Command Status Monitor Sensors',
                 "suggested_area": this.vehicle.toString() + ' Command Status Monitor Sensors',
-            },
+            };
+        }
+
+        let payload = {
+            "device": device,
             "availability": {
                 "topic": this.getAvailabilityTopic(),
                 "payload_available": 'true',
@@ -360,16 +496,30 @@ class MQTT {
         return { topic, payload };
     }
 
-    createPollingRefreshIntervalSensorConfigPayload(refreshIntervalCurrentValTopic) {
+    createPollingRefreshIntervalSensorConfigPayload(refreshIntervalCurrentValTopic, listAllSensorsTogether) {
         let topic = `${this.prefix}/sensor/${this.instance}/polling_refresh_interval/config`;
-        let payload = {
-            "device": {
+
+        let device;
+        if (listAllSensorsTogether === true) {
+            device = {
+                "identifiers": [this.vehicle.vin],
+                "manufacturer": this.vehicle.make,
+                "model": this.vehicle.year + ' ' + this.vehicle.model,
+                "name": this.vehicle.toString(),
+                "suggested_area": this.vehicle.toString(),
+            };
+        } else {
+            device = {
                 "identifiers": [this.vehicle.vin + "_Command_Status_Monitor"],
                 "manufacturer": this.vehicle.make,
                 "model": this.vehicle.year + ' ' + this.vehicle.model,
                 "name": this.vehicle.toString() + ' Command Status Monitor Sensors',
                 "suggested_area": this.vehicle.toString() + ' Command Status Monitor Sensors',
-            },
+            };
+        }
+
+        let payload = {
+            "device": device,
             "availability": {
                 "topic": this.getAvailabilityTopic(),
                 "payload_available": 'true',
@@ -387,16 +537,30 @@ class MQTT {
         return { topic, payload };
     }
 
-    createPollingStatusTFSensorConfigPayload(pollingStatusTopicTF) {
+    createPollingStatusTFSensorConfigPayload(pollingStatusTopicTF, listAllSensorsTogether) {
         let topic = `${this.prefix}/binary_sensor/${this.instance}/polling_status_tf/config`;
-        let payload = {
-            "device": {
+
+        let device;
+        if (listAllSensorsTogether === true) {
+            device = {
+                "identifiers": [this.vehicle.vin],
+                "manufacturer": this.vehicle.make,
+                "model": this.vehicle.year + ' ' + this.vehicle.model,
+                "name": this.vehicle.toString(),
+                "suggested_area": this.vehicle.toString(),
+            };
+        } else {
+            device = {
                 "identifiers": [this.vehicle.vin + "_Command_Status_Monitor"],
                 "manufacturer": this.vehicle.make,
                 "model": this.vehicle.year + ' ' + this.vehicle.model,
                 "name": this.vehicle.toString() + ' Command Status Monitor Sensors',
                 "suggested_area": this.vehicle.toString() + ' Command Status Monitor Sensors',
-            },
+            };
+        }
+
+        let payload = {
+            "device": device,
             "availability": {
                 "topic": this.getAvailabilityTopic(),
                 "payload_available": 'true',
@@ -409,6 +573,55 @@ class MQTT {
             "payload_off": "true",
             "device_class": "problem",
             "icon": "mdi:sync-alert",
+        };
+        return { topic, payload };
+    }
+
+    createSensorMessageConfigPayload(sensor, component, icon) {
+        let topic, unique_id, sensor_name, value_template;
+        if (!component) {
+            topic = `${this.prefix}/sensor/${this.instance}/${sensor}_message/config`;
+            unique_id = MQTT.convertName(this.vehicle.vin) + '_' + sensor + '_message';
+            sensor_name = `${sensor.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')} Message`;
+            value_template = `{{ value_json.${sensor}_message }}`;
+        } else {
+            let transformedComponent;
+            if (component === 'tire_pressure_rf_message') {
+                transformedComponent = 'Tire Pressure: Right Front Message';
+            } else if (component === 'tire_pressure_lf_message') {
+                transformedComponent = 'Tire Pressure: Left Front Message';
+            } else if (component === 'tire_pressure_lr_message') {
+                transformedComponent = 'Tire Pressure: Left Rear Message';
+            } else if (component === 'tire_pressure_rr_message') {
+                transformedComponent = 'Tire Pressure: Right Rear Message';
+            } else {
+                transformedComponent = component.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+            }
+            topic = `${this.prefix}/sensor/${this.instance}/${component}/config`;
+            //unique_id = MQTT.convertName(this.vehicle.vin) + '_' + sensor + '_' + component;
+            unique_id = MQTT.convertName(this.vehicle.vin) + '_' + component;
+            sensor_name = `${transformedComponent}`;
+            value_template = `{{ value_json.${component} }}`;
+        }
+
+        let payload = {
+            "device": {
+                "identifiers": [this.vehicle.vin],
+                "manufacturer": this.vehicle.make,
+                "model": this.vehicle.year + ' ' + this.vehicle.model,
+                "name": this.vehicle.toString(),
+                "suggested_area": this.vehicle.toString(),
+            },
+            "availability": {
+                "topic": this.getAvailabilityTopic(),
+                "payload_available": 'true',
+                "payload_not_available": 'false',
+            },
+            "unique_id": unique_id,
+            "name": sensor_name,
+            "state_topic": `${this.prefix}/sensor/${this.instance}/${sensor}/state`,
+            "value_template": value_template,
+            "icon": icon,
         };
         return { topic, payload };
     }
@@ -602,5 +815,7 @@ class MQTT {
         }
     }
 }
+
+MQTT.validateButtonNames();
 
 module.exports = MQTT;
