@@ -227,6 +227,26 @@ const configureMQTT = async (commands, client, mqttHA) => {
                     );
                 }
                 await Promise.all(publishes);
+                // refactor the response handling for commands - Done!
+                const completionTimestamp = new Date().toISOString();
+                logger.debug(`Completion Timestamp: ${completionTimestamp}`);
+                logger.warn('Command completed:', { command });
+                logger.warn(`Command Status Topic: ${commandStatusTopic}`);
+                client.publish(
+                    commandStatusTopic,
+                    JSON.stringify({
+                        "command": {
+                            "error": {
+                                "message": "Completed Successfully",
+                                "response": {
+                                    "status": 0,
+                                    "statusText": "Completed Successfully"
+                                }
+                            }
+                        },
+                        "completionTimestamp": completionTimestamp
+                    }), { retain: true }
+                );
             })()
                 .catch((e) => {
                     if (e instanceof Error) {
@@ -453,7 +473,7 @@ const configureMQTT = async (commands, client, mqttHA) => {
                             const deviceTrackerConfig = {
                                 "json_attributes_topic": topic,
                                 "name": vehicle,
-                                "unique_id": MQTT.convertName(vehicle) + '_device_tracker',
+                                "unique_id": MQTT.convertName(vehicle) + '_device_tracker_' + onstarConfig.vin,
                             };
 
                             logger.debug(vehicle)
@@ -635,7 +655,7 @@ logger.info('!-- Starting OnStar2MQTT Polling --!');
                     logger.info(`Button Configs Published!`);
                 }
             }
-            publishButtonConfigs();            
+            publishButtonConfigs();
 
             const statsRes = await commands.diagnostics({ diagnosticItem: v.getSupported() });
             logger.info('Diagnostic request status', { status: _.get(statsRes, 'status') });
